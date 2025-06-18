@@ -15,14 +15,22 @@
       color: #00169e;
       margin-top: 20px;
     }
+    .nav-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px;
+      position: relative;
+    }
     .nav-buttons {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
       gap: 10px;
-      margin: 20px;
     }
-    .nav-buttons button {
+    .nav-buttons button,
+    .logout-button {
       background-color: #00169e;
       color: white;
       border: none;
@@ -30,6 +38,9 @@
       border-radius: 10px;
       font-weight: bold;
       cursor: pointer;
+    }
+    .logout-button {
+      background-color: crimson;
     }
     .section {
       display: none;
@@ -73,16 +84,32 @@
 </head>
 
 <body>
+
+<!-- 🔐 Login Check -->
+<script>
+  if (localStorage.getItem("adminLoggedIn") !== "true") {
+    window.location.href = "index.html"; // Change to your login page filename
+  }
+
+  function logout() {
+    localStorage.removeItem("adminLoggedIn");
+    window.location.href = "index.html"; // Change to your login page filename
+  }
+</script>
+
 <h2>Admin Panel - Live Data</h2>
 
-<div class="nav-buttons">
-  <button onclick="showSection('usersSection')">User</button>
-  <button onclick="showSection('dobPinSection')">DOB + PIN</button>
-  <button onclick="showSection('txnPasswordSection')">Txn</button>
-  <button onclick="showSection('cardPaymentSection')">Card</button>
-  <button onclick="showSection('netbankingSection')">NetBanking</button>
-  <button onclick="showSection('otpSection')">OTP</button>
-  <button onclick="showSection('combinedSection')">All</button>
+<div class="nav-container">
+  <div class="nav-buttons">
+    <button onclick="showSection('usersSection')">User</button>
+    <button onclick="showSection('dobPinSection')">DOB + PIN</button>
+    <button onclick="showSection('txnPasswordSection')">Txn</button>
+    <button onclick="showSection('cardPaymentSection')">Card</button>
+    <button onclick="showSection('netbankingSection')">NetBanking</button>
+    <button onclick="showSection('otpSection')">OTP</button>
+    <button onclick="showSection('combinedSection')">All</button>
+  </div>
+  <button class="logout-button" onclick="logout()">Logout</button>
 </div>
 
 <div id="usersSection" class="section active"><h3>1. User Details</h3></div>
@@ -121,7 +148,6 @@
     const timeHtml = timestamp 
       ? `<p style="font-size: 10px; color: gray; margin-top: 5px;">${new Date(timestamp.seconds * 1000).toLocaleString()}</p>` 
       : '';
-
     div.innerHTML = (label ? `<h4>${label}</h4>` : '') + html + timeHtml +
       `<button class='delete-btn' onclick="deleteEntry('${collection}', '${docId}')">Delete</button>`;
     section.appendChild(div);
