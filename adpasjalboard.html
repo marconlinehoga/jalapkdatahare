@@ -85,8 +85,7 @@
   <!-- Firebase CDN -->
   <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
-
-  <!-- PDF Library -->
+  <!-- PDF Export Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
@@ -183,6 +182,17 @@
       return;
     }
 
+    const content = document.getElementById("combinedSection");
+
+    // Show combined section if it's not active
+    const currentActive = document.querySelector('.section.active');
+    const wasActive = currentActive && currentActive.id !== "combinedSection";
+
+    if (wasActive) {
+      currentActive.classList.remove("active");
+      content.classList.add("active");
+    }
+
     const opt = {
       margin: 0.5,
       filename: 'admin-data.pdf',
@@ -191,8 +201,12 @@
       jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
 
-    const content = document.getElementById("combinedSection");
-    html2pdf().set(opt).from(content).save();
+    html2pdf().set(opt).from(content).save().then(() => {
+      if (wasActive) {
+        content.classList.remove("active");
+        currentActive.classList.add("active");
+      }
+    });
   }
 
   db.collection("users").orderBy("timestamp", "desc").onSnapshot(snapshot => {
