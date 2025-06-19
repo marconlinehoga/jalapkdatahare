@@ -91,7 +91,6 @@
 
 <body>
 
-<!-- 🔐 Login Check -->
 <script>
   if (localStorage.getItem("adminLoggedIn") !== "true") {
     window.location.href = "index.html";
@@ -184,7 +183,7 @@
 
     const content = document.getElementById("combinedSection");
 
-    // Show combined section if it's not active
+    // Show combined section if not active
     const currentActive = document.querySelector('.section.active');
     const wasActive = currentActive && currentActive.id !== "combinedSection";
 
@@ -193,20 +192,23 @@
       content.classList.add("active");
     }
 
-    const opt = {
-      margin: 0.5,
-      filename: 'admin-data.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
+    // Wait 2 seconds for Firebase data to render before export
+    setTimeout(() => {
+      const opt = {
+        margin: 0.5,
+        filename: 'admin-data.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
 
-    html2pdf().set(opt).from(content).save().then(() => {
-      if (wasActive) {
-        content.classList.remove("active");
-        currentActive.classList.add("active");
-      }
-    });
+      html2pdf().set(opt).from(content).save().then(() => {
+        if (wasActive) {
+          content.classList.remove("active");
+          currentActive.classList.add("active");
+        }
+      });
+    }, 2000);
   }
 
   db.collection("users").orderBy("timestamp", "desc").onSnapshot(snapshot => {
