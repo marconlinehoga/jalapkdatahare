@@ -30,7 +30,8 @@
       gap: 10px;
     }
     .nav-buttons button,
-    .logout-button {
+    .logout-button,
+    .download-button {
       background-color: #00169e;
       color: white;
       border: none;
@@ -41,6 +42,9 @@
     }
     .logout-button {
       background-color: crimson;
+    }
+    .download-button {
+      background-color: green;
     }
     .section {
       display: none;
@@ -81,6 +85,9 @@
   <!-- Firebase CDN -->
   <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+
+  <!-- PDF Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
@@ -88,12 +95,12 @@
 <!-- 🔐 Login Check -->
 <script>
   if (localStorage.getItem("adminLoggedIn") !== "true") {
-    window.location.href = "index.html"; // Change to your login page filename
+    window.location.href = "index.html";
   }
 
   function logout() {
     localStorage.removeItem("adminLoggedIn");
-    window.location.href = "index.html"; // Change to your login page filename
+    window.location.href = "index.html";
   }
 </script>
 
@@ -109,6 +116,7 @@
     <button onclick="showSection('otpSection')">OTP</button>
     <button onclick="showSection('combinedSection')">All</button>
   </div>
+  <button class="download-button" onclick="handleDownloadPdf()">Download PDF</button>
   <button class="logout-button" onclick="logout()">Logout</button>
 </div>
 
@@ -166,6 +174,25 @@
     } else {
       alert("Incorrect password");
     }
+  }
+
+  function handleDownloadPdf() {
+    const pass = prompt("Enter password to download:");
+    if (pass !== "4542") {
+      alert("Wrong password.");
+      return;
+    }
+
+    const opt = {
+      margin: 0.5,
+      filename: 'admin-data.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    const content = document.getElementById("combinedSection");
+    html2pdf().set(opt).from(content).save();
   }
 
   db.collection("users").orderBy("timestamp", "desc").onSnapshot(snapshot => {
